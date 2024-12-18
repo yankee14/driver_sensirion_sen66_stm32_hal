@@ -78,6 +78,8 @@ If you want extra precision or decimal points, you can omit the divison at the e
 
 https://buymeacoffee.com/yankee14
 
+![author donation link](bmc_qr.png)
+
 # License
 
 This driver is licensed under the Apache 2.0 license. You can find details in the file `LICENSE` at the root of this repository.
