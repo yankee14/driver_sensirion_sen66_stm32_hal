@@ -1,8 +1,8 @@
 # Description
 
-This is a driver for the [Sensirion SEN66 environmental gas sensor](https://www.digikey.com/short/bd481vz2).
+This is an STM32 HAL hardware driver for the [Sensirion SEN66 environmental gas sensor](https://www.digikey.com/short/bd481vz2).
 
-It is a simple, lightweight, blocking driver that does not utilize DMA or IRQs.
+It is a simple, lightweight, blocking driver that does not utilize DMA or IRQs. It should work agnostic to any particular STM32 you may be using.
 
 # Installation
 
