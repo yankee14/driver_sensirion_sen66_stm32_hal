@@ -81,7 +81,7 @@ HAL_StatusTypeDef SEN66_read_and_clear_device_status(SEN66 *p_sen66);
  * BEGIN WRITE-ONLY FUNCTIONS
  ****/
 HAL_StatusTypeDef SEN66_start_continuous_measurement(SEN66 const *p_sen66);
-HAL_StatusTypeDef SEN66_stop_continuous_measurement(SEN66 const *p_sen66);
+HAL_StatusTypeDef SEN66_stop_measurement(SEN66 const *p_sen66);
 
 HAL_StatusTypeDef SEN66_device_reset(SEN66 const *p_sen66);
 HAL_StatusTypeDef SEN66_start_fan_cleaning(SEN66 const *p_sen66);

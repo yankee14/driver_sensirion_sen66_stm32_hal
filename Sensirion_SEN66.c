@@ -18,20 +18,20 @@ uint16_t const addr_i2c = 0x6B << 1;
  ****/
 uint8_t const addr_product_name[] = { 0xD0, 0x14 };
 #define PRODUCT_NAME_REG_LENGTH 48
-#define GET_PRODUCT_NAME_EXECUTION_TIME_ms 21
+#define GET_PRODUCT_NAME_EXECUTION_TIME_ms 20
 
 uint8_t const addr_serial_number[] = { 0xD0, 0x33 };
 #define SERIAL_NUMBER_REG_LENGTH 48
-#define GET_SERIAL_NUMBER_EXECUTION_TIME_ms 21
+#define GET_SERIAL_NUMBER_EXECUTION_TIME_ms 20
 
 uint8_t const addr_get_data_ready[] = { 0x02, 0x02 };
 #define DATA_READY_REG_LENGTH 3
-#define GET_DATA_READY_EXECUTION_TIME_ms 21
+#define GET_DATA_READY_EXECUTION_TIME_ms 20
 
 uint8_t const addr_read_device_status[] = { 0xD2, 0x06 };
 #define DEVICE_STATUS_REG_LENGTH 6
-#define READ_DEVICE_STATUS_EXECUTION_TIME_ms 21
-#define READ_AND_CLEAR_DEVICE_STATUS_EXECUTION_TIME_ms 21
+#define READ_DEVICE_STATUS_EXECUTION_TIME_ms 20
+#define READ_AND_CLEAR_DEVICE_STATUS_EXECUTION_TIME_ms 20
 #define DEVICE_STATUS_FAN_SPEED_WARNING_byte 1
 #define DEVICE_STATUS_FAN_SPEED_WARNING_bit 5
 #define DEVICE_STATUS_PARTICULATE_MATTER_SENSOR_ERROR_byte 2
@@ -47,7 +47,7 @@ uint8_t const addr_read_device_status[] = { 0xD2, 0x06 };
 
 uint8_t const addr_read_measured_values[] = { 0x03, 0x00 };
 #define MEASURED_VALUES_REG_LENGTH 27
-#define READ_MEASURED_VALUES_EXECUTION_TIME_ms 21
+#define READ_MEASURED_VALUES_EXECUTION_TIME_ms 20
 #define MEASURED_VALUES_MASS_CONCENTRATION_PM1p0_MSB_index 0-0/3
 #define MEASURED_VALUES_MASS_CONCENTRATION_PM1p0_LSB_index 1-1/3
 #define MEASURED_VALUES_MASS_CONCENTRATION_PM2p5_MSB_index 3-3/3
@@ -82,19 +82,19 @@ uint8_t const addr_read_and_clear_device_status[] = { 0xD2, 0x10 };
  * BEGIN PRIVATE VARIABLES FOR WRITE-ONLY FUNCTIONS
  ****/
 uint8_t const addr_start_continuous_measurement[] = { 0x00, 0x21 };
-#define START_CONTINUOUS_MEASUREMENT_EXECUTION_TIME_ms 51
+#define START_CONTINUOUS_MEASUREMENT_EXECUTION_TIME_ms 50
 
-uint8_t const addr_stop_continuous_measurement[] = { 0x01, 0x04 };
-#define STOP_CONTINUOUS_MEASUREMENT_EXECUTION_TIME_ms 1001
+uint8_t const addr_stop_measurement[] = { 0x01, 0x04 };
+#define STOP_MEASUREMENT_EXECUTION_TIME_ms 1000
 
 uint8_t const addr_device_reset[] = { 0xD3, 0x04 };
-#define DEVICE_RESET_EXECUTION_TIME_ms 1201
+#define DEVICE_RESET_EXECUTION_TIME_ms 1200
 
 uint8_t const addr_start_fan_cleaning[] = { 0x56, 0x07 };
-#define START_FAN_CLEANING_EXECUTION_TIME_ms 10021
+#define START_FAN_CLEANING_EXECUTION_TIME_ms 10020
 
 uint8_t const addr_activate_SHT_heater[] = { 0x67, 0x65 };
-#define ACTIVATE_SHT_HEATER_EXECUTION_TIME_ms 1301
+#define ACTIVATE_SHT_HEATER_EXECUTION_TIME_ms 21300
 /****
  * END PRIVATE VARIABLES FOR WRITE-ONLY FUNCTIONS
  ****/
@@ -102,6 +102,15 @@ uint8_t const addr_activate_SHT_heater[] = { 0x67, 0x65 };
 /****
  * BEGIN INTERNAL FUNCTION PROTOTYPES
  ****/
+/**
+ * @brief  Calculates additional HAL_Delay() time for inaccurate CPU clocks (such as HSI OSC).
+ * @param  base_delay_ms The minimum delay time in ms
+ * @param  compensation_log2 The additional delay time in ms desired, see retval.
+ * @retval base_delay_ms + (base_delay_ms >> compensation_log2)
+ */
+static uint32_t SEN66_calculate_clock_tolerance_compensation_ms(
+		uint32_t base_delay_ms, uint32_t compensation_log2);
+
 #define SEN66_CRC_8_DALLAS_INIT 0xFF
 #define SEN66_CRC_8_DALLAS_POLYNOMIAL 0x31
 static uint8_t SEN66_crc_8_dallas(uint8_t const data[],
@@ -150,7 +159,8 @@ HAL_StatusTypeDef SEN66_get_serial_number(SEN66 *p_sen66) {
 			HAL_MAX_DELAY);
 	if (HAL_OK != i2c_status)
 		return i2c_status;
-	HAL_Delay(GET_SERIAL_NUMBER_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	GET_SERIAL_NUMBER_EXECUTION_TIME_ms, 3));
 
 	i2c_status = HAL_I2C_Master_Receive(p_sen66->p_hi2c, addr_i2c,
 			rx_serial_number, SERIAL_NUMBER_REG_LENGTH,
@@ -173,7 +183,8 @@ HAL_StatusTypeDef SEN66_get_product_name(SEN66 *p_sen66) {
 			HAL_MAX_DELAY);
 	if (HAL_OK != i2c_status)
 		return i2c_status;
-	HAL_Delay(GET_PRODUCT_NAME_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	GET_PRODUCT_NAME_EXECUTION_TIME_ms, 3));
 
 	i2c_status = HAL_I2C_Master_Receive(p_sen66->p_hi2c, addr_i2c,
 			rx_product_name,
@@ -182,8 +193,9 @@ HAL_StatusTypeDef SEN66_get_product_name(SEN66 *p_sen66) {
 		return i2c_status;
 	if (!SEN66_crc_ok(rx_product_name, PRODUCT_NAME_REG_LENGTH))
 		return HAL_ERROR;
-	SEN66_fill_array_discard_crc(p_sen66->product_name, PRODUCT_NAME_LENGTH,
-			rx_product_name, PRODUCT_NAME_REG_LENGTH);
+	SEN66_fill_array_discard_crc(p_sen66->product_name,
+	PRODUCT_NAME_LENGTH, rx_product_name,
+	PRODUCT_NAME_REG_LENGTH);
 	return i2c_status;
 }
 
@@ -196,16 +208,20 @@ HAL_StatusTypeDef SEN66_get_data_ready(SEN66 *p_sen66) {
 			HAL_MAX_DELAY);
 	if (HAL_OK != i2c_status)
 		return i2c_status;
-	HAL_Delay(GET_DATA_READY_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	GET_DATA_READY_EXECUTION_TIME_ms, 3));
 
 	i2c_status = HAL_I2C_Master_Receive(p_sen66->p_hi2c, addr_i2c,
-			rx_data_ready, DATA_READY_REG_LENGTH, HAL_MAX_DELAY);
+			rx_data_ready,
+			DATA_READY_REG_LENGTH, HAL_MAX_DELAY);
 	if (HAL_OK != i2c_status)
 		return i2c_status;
-	if (!SEN66_crc_ok(rx_data_ready, DATA_READY_REG_LENGTH))
+	if (!SEN66_crc_ok(rx_data_ready,
+	DATA_READY_REG_LENGTH))
 		return HAL_ERROR;
-	SEN66_fill_array_discard_crc(p_sen66->data_ready, DATA_READY_LENGTH,
-			rx_data_ready, DATA_READY_REG_LENGTH);
+	SEN66_fill_array_discard_crc(p_sen66->data_ready,
+	DATA_READY_LENGTH, rx_data_ready,
+	DATA_READY_REG_LENGTH);
 	return i2c_status;
 }
 
@@ -222,16 +238,21 @@ HAL_StatusTypeDef SEN66_read_device_status(SEN66 *p_sen66) {
 			HAL_MAX_DELAY);
 	if (HAL_OK != i2c_status)
 		return i2c_status;
-	HAL_Delay(READ_DEVICE_STATUS_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	READ_DEVICE_STATUS_EXECUTION_TIME_ms, 3));
 
 	i2c_status = HAL_I2C_Master_Receive(p_sen66->p_hi2c, addr_i2c,
-			rx_device_status, DEVICE_STATUS_REG_LENGTH, HAL_MAX_DELAY);
+			rx_device_status,
+			DEVICE_STATUS_REG_LENGTH,
+			HAL_MAX_DELAY);
 	if (HAL_OK != i2c_status)
 		return i2c_status;
-	if (!SEN66_crc_ok(rx_device_status, DEVICE_STATUS_REG_LENGTH))
+	if (!SEN66_crc_ok(rx_device_status,
+	DEVICE_STATUS_REG_LENGTH))
 		return HAL_ERROR;
-	SEN66_fill_array_discard_crc(p_sen66->data_ready, DEVICE_STATUS_LENGTH,
-			rx_device_status, DEVICE_STATUS_REG_LENGTH);
+	SEN66_fill_array_discard_crc(p_sen66->data_ready,
+	DEVICE_STATUS_LENGTH, rx_device_status,
+	DEVICE_STATUS_REG_LENGTH);
 	return i2c_status;
 }
 
@@ -240,7 +261,9 @@ bool SEN66_is_fan_speed_warning(SEN66 const *p_sen66) {
 			p_sen66->device_status[DEVICE_STATUS_FAN_SPEED_WARNING_byte];
 	uint8_t const fan_speed_warning_masked = fan_speed_warning_byte
 			& (1 << DEVICE_STATUS_FAN_SPEED_WARNING_bit);
-	return 0 != fan_speed_warning_masked ? true : false;
+	return 0 != fan_speed_warning_masked ?
+	true :
+											false;
 }
 
 bool SEN66_is_particulate_matter_sensor_error(SEN66 const *p_sen66) {
@@ -249,7 +272,9 @@ bool SEN66_is_particulate_matter_sensor_error(SEN66 const *p_sen66) {
 	uint8_t const particulate_matter_sensor_error_masked =
 			particulate_matter_sensor_error_byte
 					& (1 << DEVICE_STATUS_PARTICULATE_MATTER_SENSOR_ERROR_bit);
-	return 0 != particulate_matter_sensor_error_masked ? true : false;
+	return 0 != particulate_matter_sensor_error_masked ?
+	true :
+															false;
 }
 
 bool SEN66_is_CO2_sensor_error(SEN66 const *p_sen66) {
@@ -257,7 +282,9 @@ bool SEN66_is_CO2_sensor_error(SEN66 const *p_sen66) {
 			p_sen66->device_status[DEVICE_STATUS_CO2_SENSOR_ERROR_byte];
 	uint8_t const CO2_sensor_error_masked = CO2_sensor_error_byte
 			& (1 << DEVICE_STATUS_CO2_SENSOR_ERROR_bit);
-	return 0 != CO2_sensor_error_masked ? true : false;
+	return 0 != CO2_sensor_error_masked ?
+	true :
+											false;
 }
 
 bool SEN66_is_gas_sensor_error(SEN66 const *p_sen66) {
@@ -265,7 +292,9 @@ bool SEN66_is_gas_sensor_error(SEN66 const *p_sen66) {
 			p_sen66->device_status[DEVICE_STATUS_GAS_SENSOR_ERROR_byte];
 	uint8_t const gas_sensor_error_masked = gas_sensor_error_byte
 			& (1 << DEVICE_STATUS_GAS_SENSOR_ERROR_bit);
-	return 0 != gas_sensor_error_masked ? true : false;
+	return 0 != gas_sensor_error_masked ?
+	true :
+											false;
 }
 
 bool SEN66_is_relative_humidity_and_temperature_sensor_error(
@@ -295,19 +324,25 @@ HAL_StatusTypeDef SEN66_read_measured_values(SEN66 *p_sen66) {
 
 	i2c_status = HAL_I2C_Master_Transmit(p_sen66->p_hi2c, addr_i2c,
 			(uint8_t*) addr_read_measured_values,
-			sizeof(addr_read_measured_values), HAL_MAX_DELAY);
+			sizeof(addr_read_measured_values),
+			HAL_MAX_DELAY);
 	if (HAL_OK != i2c_status)
 		return i2c_status;
-	HAL_Delay(READ_MEASURED_VALUES_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	READ_MEASURED_VALUES_EXECUTION_TIME_ms, 3));
 
 	i2c_status = HAL_I2C_Master_Receive(p_sen66->p_hi2c, addr_i2c,
-			rx_measured_values, MEASURED_VALUES_REG_LENGTH, HAL_MAX_DELAY);
+			rx_measured_values,
+			MEASURED_VALUES_REG_LENGTH,
+			HAL_MAX_DELAY);
 	if (HAL_OK != i2c_status)
 		return i2c_status;
-	if (!SEN66_crc_ok(rx_measured_values, MEASURED_VALUES_REG_LENGTH))
+	if (!SEN66_crc_ok(rx_measured_values,
+	MEASURED_VALUES_REG_LENGTH))
 		return HAL_ERROR;
-	SEN66_fill_array_discard_crc(p_sen66->data_ready, MEASURED_VALUES_LENGTH,
-			rx_measured_values, MEASURED_VALUES_REG_LENGTH);
+	SEN66_fill_array_discard_crc(p_sen66->data_ready,
+	MEASURED_VALUES_LENGTH, rx_measured_values,
+	MEASURED_VALUES_REG_LENGTH);
 	return i2c_status;
 }
 
@@ -396,16 +431,21 @@ HAL_StatusTypeDef SEN66_read_and_clear_device_status(SEN66 *p_sen66) {
 			HAL_MAX_DELAY);
 	if (HAL_OK != i2c_status)
 		return i2c_status;
-	HAL_Delay(READ_AND_CLEAR_DEVICE_STATUS_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	READ_AND_CLEAR_DEVICE_STATUS_EXECUTION_TIME_ms, 3));
 
 	i2c_status = HAL_I2C_Master_Receive(p_sen66->p_hi2c, addr_i2c,
-			rx_device_status, DEVICE_STATUS_REG_LENGTH, HAL_MAX_DELAY);
+			rx_device_status,
+			DEVICE_STATUS_REG_LENGTH,
+			HAL_MAX_DELAY);
 	if (HAL_OK != i2c_status)
 		return i2c_status;
-	if (!SEN66_crc_ok(rx_device_status, DEVICE_STATUS_REG_LENGTH))
+	if (!SEN66_crc_ok(rx_device_status,
+	DEVICE_STATUS_REG_LENGTH))
 		return HAL_ERROR;
-	SEN66_fill_array_discard_crc(p_sen66->data_ready, DEVICE_STATUS_LENGTH,
-			rx_device_status, DEVICE_STATUS_REG_LENGTH);
+	SEN66_fill_array_discard_crc(p_sen66->data_ready,
+	DEVICE_STATUS_LENGTH, rx_device_status,
+	DEVICE_STATUS_REG_LENGTH);
 	return i2c_status;
 }
 /****
@@ -420,7 +460,8 @@ HAL_StatusTypeDef SEN66_device_reset(SEN66 const *p_sen66) {
 	i2c_status = HAL_I2C_Master_Transmit(p_sen66->p_hi2c, addr_i2c,
 			(uint8_t*) addr_device_reset, sizeof(addr_device_reset),
 			HAL_MAX_DELAY);
-	HAL_Delay(DEVICE_RESET_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	DEVICE_RESET_EXECUTION_TIME_ms, 3));
 
 	return i2c_status;
 }
@@ -430,7 +471,8 @@ HAL_StatusTypeDef SEN66_start_fan_cleaning(SEN66 const *sen66) {
 	i2c_status = HAL_I2C_Master_Transmit(sen66->p_hi2c, addr_i2c,
 			(uint8_t*) addr_start_fan_cleaning, sizeof(addr_start_fan_cleaning),
 			HAL_MAX_DELAY);
-	HAL_Delay(START_FAN_CLEANING_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	START_FAN_CLEANING_EXECUTION_TIME_ms, 3));
 
 	return i2c_status;
 }
@@ -441,18 +483,19 @@ HAL_StatusTypeDef SEN66_start_continuous_measurement(SEN66 const *p_sen66) {
 			(uint8_t*) addr_start_continuous_measurement,
 			sizeof(addr_start_continuous_measurement),
 			HAL_MAX_DELAY);
-	HAL_Delay(START_CONTINUOUS_MEASUREMENT_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	START_CONTINUOUS_MEASUREMENT_EXECUTION_TIME_ms, 3));
 
 	return i2c_status;
 }
 
-HAL_StatusTypeDef SEN66_stop_continuous_measurement(SEN66 const *p_sen66) {
+HAL_StatusTypeDef SEN66_stop_measurement(SEN66 const *p_sen66) {
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 	i2c_status = HAL_I2C_Master_Transmit(p_sen66->p_hi2c, addr_i2c,
-			(uint8_t*) addr_stop_continuous_measurement,
-			sizeof(addr_stop_continuous_measurement),
+			(uint8_t*) addr_stop_measurement, sizeof(addr_stop_measurement),
 			HAL_MAX_DELAY);
-	HAL_Delay(STOP_CONTINUOUS_MEASUREMENT_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	STOP_MEASUREMENT_EXECUTION_TIME_ms, 3));
 
 	return i2c_status;
 }
@@ -463,7 +506,8 @@ HAL_StatusTypeDef SEN66_activate_SHT_heater(SEN66 const *p_sen66) {
 			(uint8_t*) addr_activate_SHT_heater,
 			sizeof(addr_activate_SHT_heater),
 			HAL_MAX_DELAY);
-	HAL_Delay(ACTIVATE_SHT_HEATER_EXECUTION_TIME_ms);
+	HAL_Delay(SEN66_calculate_clock_tolerance_compensation_ms(
+	ACTIVATE_SHT_HEATER_EXECUTION_TIME_ms, 3));
 
 	return i2c_status;
 }
@@ -474,11 +518,19 @@ HAL_StatusTypeDef SEN66_activate_SHT_heater(SEN66 const *p_sen66) {
 /****
  * BEGIN INTERNAL HELPER & UTILITY FUNCTIONS
  ****/
+uint32_t SEN66_calculate_clock_tolerance_compensation_ms(uint32_t base_delay_ms,
+		uint32_t compensation_log2) {
+	uint32_t new_delay_ms = base_delay_ms
+			+ (base_delay_ms >> compensation_log2);
+	return new_delay_ms;
+}
+
 uint8_t SEN66_crc_8_dallas(uint8_t const data[], size_t const data_length) {
 	if (2 != data_length)
 		return -1;
 
-	uint8_t crc = SEN66_CRC_8_DALLAS_INIT;
+	uint8_t crc =
+	SEN66_CRC_8_DALLAS_INIT;
 	for (size_t current_byte = 0; current_byte < data_length; ++current_byte) {
 		crc ^= (data[current_byte]);
 		for (uint8_t crc_bit = 8; crc_bit > 0; --crc_bit) {
