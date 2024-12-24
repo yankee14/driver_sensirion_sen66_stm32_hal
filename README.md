@@ -31,7 +31,7 @@ SEN66 my_sen66;
 3. Initialize it
 
 ```c
-SEN66_init(&my_sen66); // construct the SEN66
+SEN66_init(&my_sen66, &hi2cN); // construct the SEN66, handing it a pointer to your I2C handler
 ```
 
 4. Turn the sensors on and start sampling
