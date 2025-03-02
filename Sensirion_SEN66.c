@@ -122,7 +122,7 @@ static void SEN66_fill_array_discard_crc(uint8_t dest[],
  * END INTERNAL FUNCTION PROTOTYPES
  ****/
 
-HAL_StatusTypeDef SEN66_init(SEN66 *p_sen66, I2C_HandleTypeDef *p_hi2c) {
+HAL_StatusTypeDef SEN66_init(SEN66_t *p_sen66, I2C_HandleTypeDef *p_hi2c) {
 	p_sen66->p_hi2c = p_hi2c;
 
 	for (int i = 0; i < PRODUCT_NAME_LENGTH; ++i)
@@ -150,7 +150,7 @@ HAL_StatusTypeDef SEN66_init(SEN66 *p_sen66, I2C_HandleTypeDef *p_hi2c) {
 /****
  * BEGIN READ-ONLY FUNCTIONS
  ****/
-HAL_StatusTypeDef SEN66_get_serial_number(SEN66 *p_sen66) {
+HAL_StatusTypeDef SEN66_get_serial_number(SEN66_t *p_sen66) {
 	uint8_t rx_serial_number[SERIAL_NUMBER_REG_LENGTH] = { 0x00 };
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 
@@ -174,7 +174,7 @@ HAL_StatusTypeDef SEN66_get_serial_number(SEN66 *p_sen66) {
 	return i2c_status;
 }
 
-HAL_StatusTypeDef SEN66_get_product_name(SEN66 *p_sen66) {
+HAL_StatusTypeDef SEN66_get_product_name(SEN66_t *p_sen66) {
 	uint8_t rx_product_name[PRODUCT_NAME_REG_LENGTH] = { 0x00 };
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 
@@ -199,7 +199,7 @@ HAL_StatusTypeDef SEN66_get_product_name(SEN66 *p_sen66) {
 	return i2c_status;
 }
 
-HAL_StatusTypeDef SEN66_get_data_ready(SEN66 *p_sen66) {
+HAL_StatusTypeDef SEN66_get_data_ready(SEN66_t *p_sen66) {
 	uint8_t rx_data_ready[DATA_READY_REG_LENGTH] = { 0x00 };
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 
@@ -225,11 +225,11 @@ HAL_StatusTypeDef SEN66_get_data_ready(SEN66 *p_sen66) {
 	return i2c_status;
 }
 
-bool SEN66_is_data_ready(SEN66 const *p_sen66) {
+bool SEN66_is_data_ready(SEN66_t const *p_sen66) {
 	return p_sen66->data_ready[1];
 }
 
-HAL_StatusTypeDef SEN66_read_device_status(SEN66 *p_sen66) {
+HAL_StatusTypeDef SEN66_read_device_status(SEN66_t *p_sen66) {
 	uint8_t rx_device_status[DEVICE_STATUS_REG_LENGTH] = { 0x00 };
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 
@@ -256,7 +256,7 @@ HAL_StatusTypeDef SEN66_read_device_status(SEN66 *p_sen66) {
 	return i2c_status;
 }
 
-bool SEN66_is_fan_speed_warning(SEN66 const *p_sen66) {
+bool SEN66_is_fan_speed_warning(SEN66_t const *p_sen66) {
 	uint8_t const fan_speed_warning_byte =
 			p_sen66->device_status[DEVICE_STATUS_FAN_SPEED_WARNING_byte];
 	uint8_t const fan_speed_warning_masked = fan_speed_warning_byte
@@ -266,7 +266,7 @@ bool SEN66_is_fan_speed_warning(SEN66 const *p_sen66) {
 											false;
 }
 
-bool SEN66_is_particulate_matter_sensor_error(SEN66 const *p_sen66) {
+bool SEN66_is_particulate_matter_sensor_error(SEN66_t const *p_sen66) {
 	uint8_t const particulate_matter_sensor_error_byte =
 			p_sen66->device_status[DEVICE_STATUS_PARTICULATE_MATTER_SENSOR_ERROR_byte];
 	uint8_t const particulate_matter_sensor_error_masked =
@@ -277,7 +277,7 @@ bool SEN66_is_particulate_matter_sensor_error(SEN66 const *p_sen66) {
 															false;
 }
 
-bool SEN66_is_CO2_sensor_error(SEN66 const *p_sen66) {
+bool SEN66_is_CO2_sensor_error(SEN66_t const *p_sen66) {
 	uint8_t const CO2_sensor_error_byte =
 			p_sen66->device_status[DEVICE_STATUS_CO2_SENSOR_ERROR_byte];
 	uint8_t const CO2_sensor_error_masked = CO2_sensor_error_byte
@@ -287,7 +287,7 @@ bool SEN66_is_CO2_sensor_error(SEN66 const *p_sen66) {
 											false;
 }
 
-bool SEN66_is_gas_sensor_error(SEN66 const *p_sen66) {
+bool SEN66_is_gas_sensor_error(SEN66_t const *p_sen66) {
 	uint8_t const gas_sensor_error_byte =
 			p_sen66->device_status[DEVICE_STATUS_GAS_SENSOR_ERROR_byte];
 	uint8_t const gas_sensor_error_masked = gas_sensor_error_byte
@@ -298,7 +298,7 @@ bool SEN66_is_gas_sensor_error(SEN66 const *p_sen66) {
 }
 
 bool SEN66_is_relative_humidity_and_temperature_sensor_error(
-		SEN66 const *p_sen66) {
+		SEN66_t const *p_sen66) {
 	uint8_t relative_humidity_and_temperature_sensor_error_byte =
 			p_sen66->device_status[DEVICE_STATUS_RELATIVE_HUMIDITY_AND_TEMPERATURE_SENSOR_ERROR_byte];
 	uint8_t relative_humidity_and_temperature_sensor_error_masked =
@@ -310,7 +310,7 @@ bool SEN66_is_relative_humidity_and_temperature_sensor_error(
 																		false;
 }
 
-bool SEN66_is_fan_error(SEN66 const *p_sen66) {
+bool SEN66_is_fan_error(SEN66_t const *p_sen66) {
 	uint8_t fan_error_byte =
 			p_sen66->device_status[DEVICE_STATUS_FAN_ERROR_byte];
 	uint8_t fan_error_masked = fan_error_byte
@@ -318,7 +318,7 @@ bool SEN66_is_fan_error(SEN66 const *p_sen66) {
 	return 0 != fan_error_masked ? true : false;
 }
 
-HAL_StatusTypeDef SEN66_read_measured_values(SEN66 *p_sen66) {
+HAL_StatusTypeDef SEN66_read_measured_values(SEN66_t *p_sen66) {
 	uint8_t rx_measured_values[MEASURED_VALUES_REG_LENGTH] = { 0x00 };
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 
@@ -346,7 +346,7 @@ HAL_StatusTypeDef SEN66_read_measured_values(SEN66 *p_sen66) {
 	return i2c_status;
 }
 
-uint16_t SEN66_get_mass_concentration_PM1p0(SEN66 const *p_sen66) {
+uint16_t SEN66_get_mass_concentration_PM1p0(SEN66_t const *p_sen66) {
 	uint16_t mass_concentration_PM1p0 =
 			(p_sen66->measured_values[MEASURED_VALUES_MASS_CONCENTRATION_PM1p0_MSB_index]
 					<< 8)
@@ -354,7 +354,7 @@ uint16_t SEN66_get_mass_concentration_PM1p0(SEN66 const *p_sen66) {
 	return mass_concentration_PM1p0;
 }
 
-uint16_t SEN66_get_mass_concentration_PM2p5(SEN66 const *p_sen66) {
+uint16_t SEN66_get_mass_concentration_PM2p5(SEN66_t const *p_sen66) {
 	uint16_t mass_concentration_PM2p5 =
 			(p_sen66->measured_values[MEASURED_VALUES_MASS_CONCENTRATION_PM2p5_MSB_index]
 					<< 8)
@@ -362,7 +362,7 @@ uint16_t SEN66_get_mass_concentration_PM2p5(SEN66 const *p_sen66) {
 	return mass_concentration_PM2p5;
 }
 
-uint16_t SEN66_get_mass_concentration_PM4p0(SEN66 const *p_sen66) {
+uint16_t SEN66_get_mass_concentration_PM4p0(SEN66_t const *p_sen66) {
 	uint16_t mass_concentration_PM4p0 =
 			(p_sen66->measured_values[MEASURED_VALUES_MASS_CONCENTRATION_PM4p0_MSB_index]
 					<< 8)
@@ -370,7 +370,7 @@ uint16_t SEN66_get_mass_concentration_PM4p0(SEN66 const *p_sen66) {
 	return mass_concentration_PM4p0;
 }
 
-uint16_t SEN66_get_mass_concentration_PM10p0(SEN66 const *p_sen66) {
+uint16_t SEN66_get_mass_concentration_PM10p0(SEN66_t const *p_sen66) {
 	uint16_t mass_concentration_PM10p0 =
 			(p_sen66->measured_values[MEASURED_VALUES_MASS_CONCENTRATION_PM10p0_MSB_index]
 					<< 8)
@@ -378,7 +378,7 @@ uint16_t SEN66_get_mass_concentration_PM10p0(SEN66 const *p_sen66) {
 	return mass_concentration_PM10p0;
 }
 
-int16_t SEN66_get_ambient_humidity_pct(SEN66 const *p_sen66) {
+int16_t SEN66_get_ambient_humidity_pct(SEN66_t const *p_sen66) {
 	uint16_t ambient_humidity_pct =
 			(p_sen66->measured_values[MEASURED_VALUES_AMBIENT_HUMIDITY_pct_MSB_index]
 					<< 8)
@@ -386,7 +386,7 @@ int16_t SEN66_get_ambient_humidity_pct(SEN66 const *p_sen66) {
 	return (int16_t) ambient_humidity_pct;
 }
 
-int16_t SEN66_get_ambient_temperature_c(SEN66 const *p_sen66) {
+int16_t SEN66_get_ambient_temperature_c(SEN66_t const *p_sen66) {
 	uint16_t ambient_temperature_c =
 			(p_sen66->measured_values[MEASURED_VALUES_AMBIENT_TEMPERATURE_c_MSB_index]
 					<< 8)
@@ -394,21 +394,21 @@ int16_t SEN66_get_ambient_temperature_c(SEN66 const *p_sen66) {
 	return (int16_t) ambient_temperature_c;
 }
 
-int16_t SEN66_get_VOC_index(SEN66 const *p_sen66) {
+int16_t SEN66_get_VOC_index(SEN66_t const *p_sen66) {
 	uint16_t VOC_index =
 			(p_sen66->measured_values[MEASURED_VALUES_VOC_index_MSB_index] << 8)
 					| p_sen66->measured_values[MEASURED_VALUES_VOC_index_LSB_index];
 	return (int16_t) VOC_index;
 }
 
-int16_t SEN66_get_NOx_index(SEN66 const *p_sen66) {
+int16_t SEN66_get_NOx_index(SEN66_t const *p_sen66) {
 	uint16_t NOx_index =
 			(p_sen66->measured_values[MEASURED_VALUES_NOx_index_MSB_index] << 8)
 					| p_sen66->measured_values[MEASURED_VALUES_NOx_index_LSB_index];
 	return (int16_t) NOx_index;
 }
 
-uint16_t SEN66_get_CO2_ppm(SEN66 const *p_sen66) {
+uint16_t SEN66_get_CO2_ppm(SEN66_t const *p_sen66) {
 	uint16_t CO2_ppm =
 			(p_sen66->measured_values[MEASURED_VALUES_CO2_ppm_MSB_index] << 8)
 					| p_sen66->measured_values[MEASURED_VALUES_CO2_ppm_LSB_index];
@@ -421,7 +421,7 @@ uint16_t SEN66_get_CO2_ppm(SEN66 const *p_sen66) {
 /****
  * BEGIN READ-WRITE FUNCTIONS
  ****/
-HAL_StatusTypeDef SEN66_read_and_clear_device_status(SEN66 *p_sen66) {
+HAL_StatusTypeDef SEN66_read_and_clear_device_status(SEN66_t *p_sen66) {
 	uint8_t rx_device_status[DEVICE_STATUS_REG_LENGTH] = { 0x00 };
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 
@@ -455,7 +455,7 @@ HAL_StatusTypeDef SEN66_read_and_clear_device_status(SEN66 *p_sen66) {
 /****
  * BEGIN WRITE-ONLY FUNCTIONS
  ****/
-HAL_StatusTypeDef SEN66_device_reset(SEN66 const *p_sen66) {
+HAL_StatusTypeDef SEN66_device_reset(SEN66_t const *p_sen66) {
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 	i2c_status = HAL_I2C_Master_Transmit(p_sen66->p_hi2c, addr_i2c,
 			(uint8_t*) addr_device_reset, sizeof(addr_device_reset),
@@ -466,7 +466,7 @@ HAL_StatusTypeDef SEN66_device_reset(SEN66 const *p_sen66) {
 	return i2c_status;
 }
 
-HAL_StatusTypeDef SEN66_start_fan_cleaning(SEN66 const *sen66) {
+HAL_StatusTypeDef SEN66_start_fan_cleaning(SEN66_t const *sen66) {
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 	i2c_status = HAL_I2C_Master_Transmit(sen66->p_hi2c, addr_i2c,
 			(uint8_t*) addr_start_fan_cleaning, sizeof(addr_start_fan_cleaning),
@@ -477,7 +477,7 @@ HAL_StatusTypeDef SEN66_start_fan_cleaning(SEN66 const *sen66) {
 	return i2c_status;
 }
 
-HAL_StatusTypeDef SEN66_start_continuous_measurement(SEN66 const *p_sen66) {
+HAL_StatusTypeDef SEN66_start_continuous_measurement(SEN66_t const *p_sen66) {
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 	i2c_status = HAL_I2C_Master_Transmit(p_sen66->p_hi2c, addr_i2c,
 			(uint8_t*) addr_start_continuous_measurement,
@@ -489,7 +489,7 @@ HAL_StatusTypeDef SEN66_start_continuous_measurement(SEN66 const *p_sen66) {
 	return i2c_status;
 }
 
-HAL_StatusTypeDef SEN66_stop_measurement(SEN66 const *p_sen66) {
+HAL_StatusTypeDef SEN66_stop_measurement(SEN66_t const *p_sen66) {
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 	i2c_status = HAL_I2C_Master_Transmit(p_sen66->p_hi2c, addr_i2c,
 			(uint8_t*) addr_stop_measurement, sizeof(addr_stop_measurement),
@@ -500,7 +500,7 @@ HAL_StatusTypeDef SEN66_stop_measurement(SEN66 const *p_sen66) {
 	return i2c_status;
 }
 
-HAL_StatusTypeDef SEN66_activate_SHT_heater(SEN66 const *p_sen66) {
+HAL_StatusTypeDef SEN66_activate_SHT_heater(SEN66_t const *p_sen66) {
 	HAL_StatusTypeDef i2c_status = HAL_ERROR;
 	i2c_status = HAL_I2C_Master_Transmit(p_sen66->p_hi2c, addr_i2c,
 			(uint8_t*) addr_activate_SHT_heater,
